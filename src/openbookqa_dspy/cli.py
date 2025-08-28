@@ -3,14 +3,16 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Optional
+from dotenv import load_dotenv
 
 import typer
 
-from .agent import build_pipeline
+from .agent import build_selected_pipeline
 from .config import Settings
-from .data import QAExample, as_qa_iter, load_openbookqa
-from .eval import evaluate_with_details
+from .data import prepare_examples
+from .eval import evaluate
+from .modules import ApproachEnum
 
 
 app = typer.Typer(help="OpenBookQA DSPy Agent")
@@ -18,31 +20,11 @@ app = typer.Typer(help="OpenBookQA DSPy Agent")
 
 def _load_settings() -> Settings:
     """Load settings and ensure OPENAI_API_KEY is present."""
-    try:
-        from dotenv import load_dotenv
-
-        load_dotenv()
-    except Exception:
-        # Proceed if dotenv is not installed/available.
-        pass
+    load_dotenv()
     settings = Settings.load()
     if not settings.openai_api_key:
         raise RuntimeError("OPENAI_API_KEY is required")
     return settings
-
-
-def _prepare_examples(split: str, limit: Optional[int]) -> list[QAExample]:
-    """Load dataset split and return a (possibly truncated) list of examples."""
-    ds = load_openbookqa()
-    if split not in ds:
-        raise RuntimeError(f"Split '{split}' not found. Available splits: {list(ds.keys())}")
-
-    data_iter: Iterable[QAExample] = as_qa_iter(ds[split])
-    if limit is not None:
-        from itertools import islice
-
-        data_iter = islice(data_iter, limit)
-    return list(data_iter)
 
 
 def _report_path_for(settings: Settings) -> Path:
@@ -57,16 +39,39 @@ def _report_path_for(settings: Settings) -> Path:
 
 @app.command()
 def eval(
-    split: str = typer.Option("validation", help="Dataset split: train/validation/test"),
     limit: Optional[int] = typer.Option(50, help="Max examples to evaluate"),
+    approach: ApproachEnum = typer.Option(
+        ApproachEnum.baseline,
+        help="Which approach to evaluate: baseline or mipro"
+    ),
+    train_limit: Optional[int] = typer.Option(
+        None, help="(mipro) Number of training examples to compile with"
+    ),
+    val_limit: Optional[int] = typer.Option(
+        None, help="(mipro) Number of validation examples for compilation tuning"
+    ),
+    max_iters: int = typer.Option(3, help="(mipro) Max optimization iterations"),
+    seed: int = typer.Option(13, help="(mipro) Random seed for optimization"),
 ) -> None:
-    """Evaluate the baseline pipeline on OpenBookQA."""
-    settings = _load_settings()
-    examples = _prepare_examples(split=split, limit=limit)
-    pipe = build_pipeline(settings)
+    """Evaluate a selected approach on OpenBookQA (baseline or MIPROv2).
 
-    acc, n, records = evaluate_with_details(pipe, examples)
+    Always evaluates on the validation split; optimization uses train/validation as needed.
+    """
+    settings = _load_settings()
+    examples = prepare_examples(split="validation", limit=limit)
+    pipe = build_selected_pipeline(
+        settings,
+        approach=approach,
+        train_limit=train_limit,
+        val_limit=val_limit,
+        max_iters=max_iters,
+        seed=seed,
+    )
+
+    acc, n, records = evaluate(pipe, examples)
     report = {"sample_size": n, "accuracy": acc, "examples": records}
     out_path = _report_path_for(settings)
     out_path.write_text(json.dumps(report, ensure_ascii=False, indent=2))
-    typer.echo(f"Wrote JSON report to {out_path} (Accuracy@{split}: {acc:.3f}, n={n})")
+    typer.echo(
+        f"Wrote JSON report to {out_path} (Approach={approach}, Accuracy@validation: {acc:.3f}, n={n})"
+    )

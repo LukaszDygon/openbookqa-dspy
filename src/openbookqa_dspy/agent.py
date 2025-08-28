@@ -1,25 +1,20 @@
 from __future__ import annotations
 
-import os
 import dspy
 from .config import Settings
-from .data import QAExample
+from .data import QAExample, format_choices, prepare_examples, to_mipro_examples
+from .lm import configure_dspy_lm
+from .modules.baseline import BaselineModule
+from .modules.mipro import MiproModule
+from .modules import ApproachEnum
 
 
 def _configure_dspy_lm(settings: Settings) -> None:
-    """Configure DSPy to use its built-in LM with OpenAI provider.
+    """Backwards-compatible wrapper around `configure_dspy_lm()`.
 
-    Sets the OPENAI_API_KEY if provided in settings and initializes a deterministic
-    LM suitable for short JSON-adapted completions.
+    Kept to avoid touching other call sites; delegates to shared util.
     """
-    if settings.openai_api_key and not os.environ.get("OPENAI_API_KEY"):
-        os.environ["OPENAI_API_KEY"] = settings.openai_api_key
-
-    lm = dspy.LM(
-        model=settings.model,
-        cache=False,
-    )
-    dspy.settings.configure(lm=lm)
+    configure_dspy_lm(settings)
 
 
 def build_pipeline(settings: Settings) -> dspy.Module:
@@ -32,15 +27,8 @@ def build_pipeline(settings: Settings) -> dspy.Module:
         A `dspy.Module` pipeline (baseline).
     """
     _configure_dspy_lm(settings)
-
-    class Answerer(dspy.Signature):
-        """Answer the multiple-choice question by returning the single best option (A-D)."""
-
-        question: str = dspy.InputField()
-        options: str = dspy.InputField()
-        answer: str = dspy.OutputField(desc="Only the single letter A, B, C, or D.")
-
-    return dspy.ChainOfThought(Answerer)  # simple baseline; replace with optimizer later
+    # Delegate to modules.baseline for the default behavior.
+    return BaselineModule()
 
 
 def predict_answer(pipe: dspy.Module, example: QAExample) -> str:
@@ -53,6 +41,44 @@ def predict_answer(pipe: dspy.Module, example: QAExample) -> str:
     Returns:
         Predicted answer letter.
     """
-    opts = "\n".join(f"{chr(65+i)}. {opt}" for i, opt in enumerate(example["choices"]))
+    opts = format_choices(example["choices"])
     pred = pipe(question=example["question"], options=opts)
     return str(getattr(pred, "answer", "")).strip()
+
+
+def build_selected_pipeline(
+    settings: Settings,
+    *,
+    approach: ApproachEnum,
+    train_limit: int | None,
+    val_limit: int | None,
+    max_iters: int,
+    seed: int,
+) -> dspy.Module:
+    """Build a pipeline for the chosen approach.
+
+    - baseline: simple ChainOfThought, no optimization
+    - mipro: optional compilation using train/validation splits
+    """
+    configure_dspy_lm(settings)
+    if approach == ApproachEnum.baseline:
+        return BaselineModule()
+
+    if approach == ApproachEnum.mipro:
+        trainset = valset = None
+        if train_limit is not None and train_limit > 0:
+            train_examples = prepare_examples(split="train", limit=train_limit)
+            trainset = to_mipro_examples(train_examples)
+        if val_limit is not None and val_limit > 0:
+            val_examples = prepare_examples(split="validation", limit=val_limit)
+            valset = to_mipro_examples(val_examples)
+        return MiproModule(
+            model_name=settings.model,
+            trainset=trainset,
+            valset=valset,
+            max_iters=max_iters,
+            seed=seed,
+        )
+
+    # Should not happen due to typing; make explicit if it does.
+    raise ValueError(f"Unknown approach: {approach.value}")
