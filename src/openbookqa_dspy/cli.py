@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import json
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +26,15 @@ def _load_settings() -> Settings:
     if not settings.openai_api_key:
         raise RuntimeError("OPENAI_API_KEY is required")
     return settings
+
+
+def _configure_logging() -> None:
+    """Initialize basic logging format once for CLI sessions."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
 
 def _report_path_for(settings: Settings) -> Path:
@@ -57,8 +67,25 @@ def eval(
 
     Always evaluates on the validation split; optimization uses train/validation as needed.
     """
+    _configure_logging()
+    log = logging.getLogger(__name__)
     settings = _load_settings()
     examples = prepare_examples(split="validation", limit=limit)
+    try:
+        n_val = len(examples)  # type: ignore[arg-type]
+    except Exception:
+        n_val = -1
+    log.info(
+        "Eval start | model=%s | approach=%s | limit=%s | train_limit=%s | val_limit=%s | max_iters=%d | seed=%d | n_val=%s",
+        settings.model,
+        approach.value,
+        limit,
+        train_limit,
+        val_limit,
+        max_iters,
+        seed,
+        n_val if n_val >= 0 else "unknown",
+    )
     pipe = build_selected_pipeline(
         settings,
         approach=approach,
@@ -72,6 +99,8 @@ def eval(
     report = {"sample_size": n, "accuracy": acc, "examples": records}
     out_path = _report_path_for(settings)
     out_path.write_text(json.dumps(report, ensure_ascii=False, indent=2))
+    log.info("Eval done | wrote=%s | accuracy=%.3f | n=%d", out_path, acc, n)
     typer.echo(
         f"Wrote JSON report to {out_path} (Approach={approach}, Accuracy@validation: {acc:.3f}, n={n})"
     )
+
