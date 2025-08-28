@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+from datetime import datetime
 import typer
 from typing import Optional
 from .config import Settings
 from .data import load_openbookqa, as_qa_iter
 from .agent import build_pipeline
-from .eval import accuracy
+from .eval import evaluate
 
 app = typer.Typer(help="OpenBookQA DSPy Agent")
 
@@ -38,6 +41,21 @@ def eval(
 
         data_iter = islice(data_iter, limit)
 
+    # Materialize the (possibly truncated) iterator to reuse for both eval and report
+    examples = list(data_iter)
+
     pipe = build_pipeline(settings)
-    acc = accuracy(pipe, data_iter)
-    typer.echo(f"Accuracy@{split} (n={limit or 'all'}): {acc:.3f}")
+
+    acc, n, records = evaluate(pipe, examples)
+    report = {"sample_size": n, "accuracy": acc, "examples": records}
+
+    # Prepare output directory and timestamped filename with model name
+    out_dir = Path("evaluation_results")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    model_safe = settings.model.replace("/", "-").replace(":", "-").replace(" ", "_")
+    out_path = out_dir / f"{ts}_{model_safe}.json"
+
+    out_path.write_text(json.dumps(report, ensure_ascii=False, indent=2))
+    typer.echo(f"Wrote JSON report to {out_path} (Accuracy@{split}: {acc:.3f}, n={n})")

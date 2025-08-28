@@ -11,12 +11,12 @@ class Settings:
     Attributes:
         openai_api_key: API key for OpenAI.
         hf_home: Optional Hugging Face cache directory.
-        model: OpenAI model name to use (default: gpt-4o).
+        model: OpenAI model name to use (default: openai/gpt-4o-mini).
     """
 
     openai_api_key: str
     hf_home: str | None = None
-    model: str = "gpt-4o"
+    model: str = "openai/gpt-4o-mini"
 
     @staticmethod
     def load() -> "Settings":
@@ -28,5 +28,5 @@ class Settings:
         return Settings(
             openai_api_key=os.environ.get("OPENAI_API_KEY", ""),
             hf_home=os.environ.get("HF_HOME"),
-            model=os.environ.get("OPENBOOKQA_DSPY_MODEL", "gpt-4o-mini"),
+            model=os.environ.get("OPENBOOKQA_DSPY_MODEL", "openai/gpt-4o-mini"),
         )

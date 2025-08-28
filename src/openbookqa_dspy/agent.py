@@ -1,83 +1,46 @@
 from __future__ import annotations
 
-from typing import Any
+import os
 import dspy
-from openai import OpenAI
 from .config import Settings
 from .data import QAExample
 
 
-class OpenAICompletion(dspy.LM):
-    """DSPy LM wrapper around OpenAI chat completions for simple completion."""
+def _configure_dspy_lm(settings: Settings) -> None:
+    """Configure DSPy to use its built-in LM with OpenAI provider.
 
-    def __init__(self, model: str, api_key: str) -> None:
-        super().__init__(model=model, cache=False)
-        self._client = OpenAI(api_key=api_key)
-        self._model = model
+    Sets the OPENAI_API_KEY if provided in settings and initializes a deterministic
+    LM suitable for short JSON-adapted completions.
+    """
+    if settings.openai_api_key and not os.environ.get("OPENAI_API_KEY"):
+        os.environ["OPENAI_API_KEY"] = settings.openai_api_key
 
-    def __call__(self, *args: Any, **kwargs: Any) -> str:
-        """Return a text completion for either a prompt or chat messages.
-
-        Supports both:
-        - prompt: str
-        - messages: list[{"role": str, "content": str}] (preferred by DSPy adapters)
-        """
-        # Extract possible inputs
-        prompt: str | None = kwargs.pop("prompt", None)
-        messages: list[dict[str, str]] | None = kwargs.pop("messages", None)
-
-        if messages is None:
-            # Some callers may pass the prompt as a positional arg
-            if prompt is None and args:
-                maybe_prompt = args[0]
-                if isinstance(maybe_prompt, str):
-                    prompt = maybe_prompt
-            if prompt is None:
-                raise TypeError(
-                    "OpenAICompletion.__call__ requires 'messages' or 'prompt' argument"
-                )
-            messages = [{"role": "user", "content": prompt}]
-
-        temperature = float(kwargs.pop("temperature", 0.0))
-        max_tokens = int(kwargs.pop("max_tokens", 16))
-
-        resp = self._client.chat.completions.create(
-            model=self._model,
-            messages=messages,  # type: ignore[arg-type]
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-        return resp.choices[0].message.content or ""
+    lm = dspy.LM(
+        model=settings.model,
+        cache=False,
+    )
+    dspy.settings.configure(lm=lm)
 
 
 def build_pipeline(settings: Settings) -> dspy.Module:
-    """Create a minimal DSPy pipeline that returns a single letter (A-D).
+    """Create a minimal DSPy pipeline using OpenAI gpt-4o.
 
-    This implementation avoids DSPy's JSONAdapter by constructing a strict
-    prompt and parsing the letter locally.
+    Args:
+        settings: Loaded runtime settings.
+
+    Returns:
+        A `dspy.Module` pipeline (baseline).
     """
-    lm = OpenAICompletion(model=settings.model, api_key=settings.openai_api_key)
-    dspy.settings.configure(lm=lm)
+    _configure_dspy_lm(settings)
 
-    class MCQAnswerer(dspy.Module):
-        def forward(self, question: str, options: str):  # type: ignore[override]
-            import re
+    class Answerer(dspy.Signature):
+        """Answer the multiple-choice question by returning the single best option (A-D)."""
 
-            prompt = (
-                "You are a careful multiple-choice solver.\n"
-                "Choose the best single option.\n"
-                "Question: "
-                f"{question}\n"
-                "Options:\n"
-                f"{options}\n\n"
-                "Respond with ONLY one character: A, B, C, or D. No words."
-            )
-            text = dspy.settings.lm(prompt=prompt, max_tokens=4, temperature=1.0)  # type: ignore[call-arg]
-            m = re.search(r"[ABCD]", str(text).upper())
-            ans = m.group(0) if m else ""
-            return dspy.Prediction(answer=ans)  # type: ignore[no-any-return]
+        question: str = dspy.InputField()
+        options: str = dspy.InputField()
+        answer: str = dspy.OutputField(desc="Only the single letter A, B, C, or D.")
 
-    return MCQAnswerer()
+    return dspy.ChainOfThought(Answerer)  # simple baseline; replace with optimizer later
 
 
 def predict_answer(pipe: dspy.Module, example: QAExample) -> str:
