@@ -1,0 +1,17 @@
+# Python/uv
+.venv/
+.pytest_cache/
+.mypy_cache/
+__pycache__/
+*.pyc
+
+# Env
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
+
+# uv lock (committable by choice; keep included)
+# uv.lock
