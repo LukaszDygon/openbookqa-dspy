@@ -62,7 +62,6 @@ def eval(
     val_limit: Optional[int] = typer.Option(
         None, help="(mipro) Number of validation examples for compilation tuning"
     ),
-    max_iters: int = typer.Option(3, help="(mipro) Max optimization iterations"),
     seed: int = typer.Option(13, help="(mipro) Random seed for optimization"),
     threads: int = typer.Option(16, help="Evaluation threads (1 = serial)"),
 ) -> None:
@@ -76,13 +75,12 @@ def eval(
     examples = prepare_examples(split="validation", limit=limit)
     n_val = len(examples)
     log.info(
-        "Eval start | model=%s | approach=%s | limit=%s | train_limit=%s | val_limit=%s | max_iters=%d | seed=%d | threads=%d | n_val=%s",
+        "Eval start | model=%s | approach=%s | limit=%s | train_limit=%s | val_limit=%s | seed=%d | threads=%d | n_val=%s",
         settings.model,
         approach.value,
         limit,
         train_limit,
         val_limit,
-        max_iters,
         seed,
         threads,
         n_val if n_val >= 0 else "unknown",
@@ -92,7 +90,6 @@ def eval(
         approach=approach,
         train_limit=train_limit,
         val_limit=val_limit,
-        max_iters=max_iters,
         seed=seed,
     )
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dspy
 from .config import Settings
-from .data import QAExample, format_choices, prepare_examples, to_mipro_examples
+from .data import prepare_examples
 from .lm import configure_dspy_lm
 from .modules.baseline import BaselineModule
 from .modules.mipro import MiproModule
@@ -31,7 +31,7 @@ def build_pipeline(settings: Settings) -> dspy.Module:
     return BaselineModule()
 
 
-def predict_answer(pipe: dspy.Module, example: QAExample) -> str:
+def predict_answer(pipe: dspy.Module, example: dspy.Example) -> str:
     """Run the pipeline on a single example.
 
     Args:
@@ -41,8 +41,7 @@ def predict_answer(pipe: dspy.Module, example: QAExample) -> str:
     Returns:
         Predicted answer letter.
     """
-    opts = format_choices(example["choices"])
-    pred = pipe(question=example["question"], options=opts)
+    pred = pipe(question=example.question, options=example.choices)
     return str(getattr(pred, "answer", "")).strip()
 
 
@@ -52,7 +51,6 @@ def build_selected_pipeline(
     approach: ApproachEnum,
     train_limit: int | None,
     val_limit: int | None,
-    max_iters: int,
     seed: int,
 ) -> dspy.Module:
     """Build a pipeline for the chosen approach.
@@ -67,16 +65,13 @@ def build_selected_pipeline(
     if approach == ApproachEnum.mipro:
         trainset = valset = None
         if train_limit is not None and train_limit > 0:
-            train_examples = prepare_examples(split="train", limit=train_limit)
-            trainset = to_mipro_examples(train_examples)
+            trainset = prepare_examples(split="train", limit=train_limit)
         if val_limit is not None and val_limit > 0:
-            val_examples = prepare_examples(split="validation", limit=val_limit)
-            valset = to_mipro_examples(val_examples)
+            valset = prepare_examples(split="validation", limit=val_limit)
         return MiproModule(
             model_name=settings.model,
             trainset=trainset,
             valset=valset,
-            max_iters=max_iters,
             seed=seed,
         )
 

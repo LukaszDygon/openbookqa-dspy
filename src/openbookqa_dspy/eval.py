@@ -5,7 +5,6 @@ from typing import Iterable, TypedDict, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed, Future
 
 import dspy
-from .data import QAExample
 from .agent import predict_answer
 
 
@@ -24,13 +23,13 @@ class ExampleResult(TypedDict):
 
 
 def evaluate(
-    pipe: dspy.Module, examples: Iterable[QAExample], *, threads: int = 1
+    pipe: dspy.Module, examples: Iterable[dspy.Example], *, threads: int = 1
 ) -> tuple[float, int, list[ExampleResult]]:
     """Evaluate and collect per-example details.
 
     Args:
         pipe: The DSPy pipeline to evaluate.
-        examples: Iterable of `QAExample`.
+        examples: Iterable of `dspy.Example`.
         threads: Number of threads to use (1 = serial).
 
     Returns:
@@ -43,13 +42,13 @@ def evaluate(
         logger.info("Starting evaluation over examples (size unknown a priori)")
         for idx, ex in enumerate(examples):
             pred = predict_answer(pipe, ex)
-            is_correct = pred.upper() == ex["answer"].upper()
+            is_correct = pred.upper() == ex.answer.upper()
             serial_records.append(
                 ExampleResult(
                     index=idx,
-                    question=ex["question"],
-                    choices=ex["choices"],
-                    expected=ex["answer"],
+                    question=ex.question,
+                    choices=ex.choices,
+                    expected=ex.answer,
                     predicted=pred,
                     correct=is_correct,
                 )
@@ -69,11 +68,11 @@ def evaluate(
         return acc, total, serial_records
 
     # Parallel path: realize examples into a list for indexing and to avoid double iteration
-    ex_list: list[QAExample] = list(examples)
+    ex_list: list[dspy.Example] = list(examples)
     n_total = len(ex_list)
     logger.info("Starting parallel evaluation with %d threads over %d examples", threads, n_total)
 
-    def _task(idx_ex: Tuple[int, QAExample]) -> Tuple[int, str]:
+    def _task(idx_ex: Tuple[int, dspy.Example]) -> Tuple[int, str]:
         idx, ex = idx_ex
         pred = predict_answer(pipe, ex)
         return idx, pred
@@ -89,13 +88,13 @@ def evaluate(
         for fut in as_completed(futures):
             idx, pred = fut.result()
             ex = ex_list[idx]
-            is_correct = pred.upper() == ex["answer"].upper()
+            is_correct = pred.upper() == ex.answer.upper()
             par_records.append(
                 ExampleResult(
                     index=idx,
-                    question=ex["question"],
-                    choices=ex["choices"],
-                    expected=ex["answer"],
+                    question=ex.question,
+                    choices=ex.choices,
+                    expected=ex.answer,
                     predicted=pred,
                     correct=is_correct,
                 )
