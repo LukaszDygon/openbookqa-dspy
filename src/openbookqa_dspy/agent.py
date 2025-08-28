@@ -41,7 +41,7 @@ def predict_answer(pipe: dspy.Module, example: dspy.Example) -> str:
     Returns:
         Predicted answer letter.
     """
-    pred = pipe(question=example.question, options=example.choices)
+    pred = pipe(question=example.question, options=example.options)
     return str(getattr(pred, "answer", "")).strip()
 
 
@@ -74,6 +74,3 @@ def build_selected_pipeline(
             valset=valset,
             seed=seed,
         )
-
-    # Should not happen due to typing; make explicit if it does.
-    raise ValueError(f"Unknown approach: {approach.value}")

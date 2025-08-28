@@ -16,7 +16,7 @@ class ExampleResult(TypedDict):
 
     index: int
     question: str
-    choices: list[str]
+    options: list[str]
     expected: str
     predicted: str
     correct: bool
@@ -47,7 +47,7 @@ def evaluate(
                 ExampleResult(
                     index=idx,
                     question=ex.question,
-                    choices=ex.choices,
+                    options=ex.options,
                     expected=ex.answer,
                     predicted=pred,
                     correct=is_correct,
@@ -93,7 +93,7 @@ def evaluate(
                 ExampleResult(
                     index=idx,
                     question=ex.question,
-                    choices=ex.choices,
+                    options=ex.options,
                     expected=ex.answer,
                     predicted=pred,
                     correct=is_correct,

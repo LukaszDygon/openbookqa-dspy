@@ -4,8 +4,8 @@ from typing import Iterable, Optional, Literal
 from datasets import Dataset, DatasetDict, load_dataset
 import dspy
 
-def format_choices(choices: list[str]) -> list[str]:
-    return [f"{chr(65+i)}. {opt}" for i, opt in enumerate(choices)]
+def format_options(options: list[str]) -> list[str]:
+    return [f"{chr(65+i)}. {opt}" for i, opt in enumerate(options)]
 
 def load_openbookqa() -> DatasetDict:
     """Load the OpenBookQA dataset from Hugging Face.
@@ -29,9 +29,9 @@ def as_qa_iter(dataset: Dataset) -> Iterable[dspy.Example]:
     for row in dataset:
         yield dspy.Example(
             question=row.get("question_stem", ""),
-            choices=format_choices(row.get("choices", {}).get("text", [])),
+            options=format_options(row.get("choices", {}).get("text", [])),
             answer=row.get("answerKey", ""),
-        ).with_inputs("question", "choices")
+        ).with_inputs("question", "options")
 
 
 def prepare_examples(

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 def metric(
     example: dspy.Example,
     prediction: dspy.Prediction,
-    trace: dspy.Trace,
+    trace: dspy.Trace = None,
 ) -> float:  # noqa: D401
     try:
         gold = example.answer.upper()
