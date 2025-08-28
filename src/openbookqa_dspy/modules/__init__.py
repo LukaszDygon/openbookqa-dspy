@@ -4,4 +4,7 @@ from __future__ import annotations
 
 from enum import Enum
 
-ApproachEnum = Enum("ApproachName", ["baseline", "mipro"])
+
+class ApproachEnum(str, Enum):
+    baseline = "baseline"
+    mipro = "mipro"

@@ -57,7 +57,10 @@ class MiproModule(dspy.Module):
                 program = dspy.load(str(save_path))
             except Exception:
                 # Fall through to (re)compile if possible
-                logger.warning("MIPRO: failed to load cached program from %s; will attempt compile if data present", save_path)
+                logger.warning(
+                    "MIPRO: failed to load cached program from %s; will attempt compile if data present",
+                    save_path,
+                )
                 pass
 
         # If not loaded and we have data, try to compile and save
@@ -86,14 +89,17 @@ class MiproModule(dspy.Module):
                     logger.info("MIPRO: saved compiled program to %s", save_path)
                 except Exception:
                     # Non-fatal if saving fails
-                    logger.warning("MIPRO: failed to save compiled program to %s (non-fatal)", save_path)
+                    logger.warning(
+                        "MIPRO: failed to save compiled program to %s (non-fatal)", save_path
+                    )
                     pass
             except Exception:
                 # Optimizer not available; keep uncompiled program.
-                logger.warning("MIPRO: optimizer unavailable or compile failed; using uncompiled program")
+                logger.warning(
+                    "MIPRO: optimizer unavailable or compile failed; using uncompiled program"
+                )
                 pass
         self.program = program
 
     def forward(self, question: str, options: str) -> dspy.Prediction:
         return self.program(question=question, options=options)
-

@@ -37,22 +37,24 @@ def _configure_logging() -> None:
     )
 
 
-def _report_path_for(settings: Settings) -> Path:
-    """Build a timestamped path under evaluation_results/ including the model name."""
+def _report_path_for(settings: Settings, approach: ApproachEnum, n_eval: int) -> Path:
+    """Build a timestamped path under evaluation_results/ including approach and size.
+
+    The filename format is: {timestamp}_{approach}-{n_eval}.json
+    """
     out_dir = Path("evaluation_results")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_safe = settings.model.replace("/", "-").replace(":", "-").replace(" ", "_")
-    return out_dir / f"{ts}_{model_safe}.json"
+    approach_safe = approach.value.replace("/", "-").replace(":", "-").replace(" ", "_")
+    return out_dir / f"{ts}_{approach_safe}-{n_eval}.json"
 
 
 @app.command()
 def eval(
     limit: Optional[int] = typer.Option(50, help="Max examples to evaluate"),
     approach: ApproachEnum = typer.Option(
-        ApproachEnum.baseline,
-        help="Which approach to evaluate: baseline or mipro"
+        ApproachEnum.baseline, help="Which approach to evaluate: baseline or mipro"
     ),
     train_limit: Optional[int] = typer.Option(
         None, help="(mipro) Number of training examples to compile with"
@@ -62,6 +64,7 @@ def eval(
     ),
     max_iters: int = typer.Option(3, help="(mipro) Max optimization iterations"),
     seed: int = typer.Option(13, help="(mipro) Random seed for optimization"),
+    threads: int = typer.Option(16, help="Evaluation threads (1 = serial)"),
 ) -> None:
     """Evaluate a selected approach on OpenBookQA (baseline or MIPROv2).
 
@@ -71,12 +74,9 @@ def eval(
     log = logging.getLogger(__name__)
     settings = _load_settings()
     examples = prepare_examples(split="validation", limit=limit)
-    try:
-        n_val = len(examples)  # type: ignore[arg-type]
-    except Exception:
-        n_val = -1
+    n_val = len(examples)
     log.info(
-        "Eval start | model=%s | approach=%s | limit=%s | train_limit=%s | val_limit=%s | max_iters=%d | seed=%d | n_val=%s",
+        "Eval start | model=%s | approach=%s | limit=%s | train_limit=%s | val_limit=%s | max_iters=%d | seed=%d | threads=%d | n_val=%s",
         settings.model,
         approach.value,
         limit,
@@ -84,6 +84,7 @@ def eval(
         val_limit,
         max_iters,
         seed,
+        threads,
         n_val if n_val >= 0 else "unknown",
     )
     pipe = build_selected_pipeline(
@@ -95,12 +96,11 @@ def eval(
         seed=seed,
     )
 
-    acc, n, records = evaluate(pipe, examples)
+    acc, n, records = evaluate(pipe, examples, threads=threads)
     report = {"sample_size": n, "accuracy": acc, "examples": records}
-    out_path = _report_path_for(settings)
+    out_path = _report_path_for(settings, approach, n)
     out_path.write_text(json.dumps(report, ensure_ascii=False, indent=2))
     log.info("Eval done | wrote=%s | accuracy=%.3f | n=%d", out_path, acc, n)
     typer.echo(
         f"Wrote JSON report to {out_path} (Approach={approach}, Accuracy@validation: {acc:.3f}, n={n})"
     )
-
