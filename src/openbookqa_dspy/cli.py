@@ -14,6 +14,8 @@ from .config import Settings
 from .data import prepare_examples
 from .eval import evaluate
 from .modules import ApproachEnum
+from .data import prepare_q_with_answer_examples
+from .modules.generator import MiproDistractorGenerator
 
 
 app = typer.Typer(help="OpenBookQA DSPy Agent")
@@ -101,3 +103,64 @@ def eval(
     typer.echo(
         f"Wrote JSON report to {out_path} (Approach={approach}, Accuracy@validation: {acc:.3f}, n={n})"
     )
+
+
+@app.command()
+def generate_questions(
+    limit: Optional[int] = typer.Option(None, help="Max examples from test split (None = all)"),
+    train_limit: Optional[int] = typer.Option(
+        None, help="(mipro) Number of training examples for generator compilation"
+    ),
+    val_limit: Optional[int] = typer.Option(
+        None, help="(mipro) Number of validation examples for generator compilation"
+    ),
+    seed: int = typer.Option(13, help="(mipro) Random seed for optimization"),
+    output: Path = typer.Option(Path("questions.json"), help="Output JSON file path"),
+) -> None:
+    """Generate multiple-choice questions with 3 optimized distractors.
+
+    Uses the test split of OpenBookQA. The correct answer is placed as option A
+    and three generated distractors fill B-D. The file is written as a list of
+    objects with fields: question, options (list[str] of length 4), answerKey ("A").
+    """
+    _configure_logging()
+    log = logging.getLogger(__name__)
+    settings = _load_settings()
+
+    # Prepare datasets for generator training/validation and final test examples
+    trainset = (
+        prepare_q_with_answer_examples(split="train", limit=train_limit) if train_limit else None
+    )
+    valset = (
+        prepare_q_with_answer_examples(split="validation", limit=val_limit) if val_limit else None
+    )
+    test_examples = prepare_q_with_answer_examples(split="test", limit=limit)
+    n_test = len(test_examples)
+
+    log.info(
+        "Gen start | model=%s | train_limit=%s | val_limit=%s | seed=%d | n_test=%d",
+        settings.model,
+        train_limit,
+        val_limit,
+        seed,
+        n_test,
+    )
+
+    generator = MiproDistractorGenerator(settings, trainset=trainset, valset=valset, seed=seed)
+
+    records: list[dict[str, object]] = []
+    for idx, ex in enumerate(test_examples):
+        ds = generator.generate_distractors(ex.question, ex.answer_text)
+        options = [ex.answer_text, *ds]
+        records.append(
+            {
+                "index": idx,
+                "question": ex.question,
+                "options": options,
+                "answerKey": "A",
+            }
+        )
+
+    output.write_text(json.dumps(records, ensure_ascii=False, indent=2))
+    log.info("Generation done | wrote=%s | n=%d", output, len(records))
+    typer.echo(f"Wrote questions to {output} (n={len(records)})")
