@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OpenBookQA Evaluations</title>
+    <style>
+      :root {
+        --bg: #0b0f14;
+        --panel: #121820;
+        --text: #e6edf3;
+        --muted: #9fb1c1;
+        --accent: #4cc2ff;
+        --good: #2ecc71;
+        --bad: #ff6b6b;
+        --border: #223242;
+      }
+      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+      header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+      .filters a { margin-right: 8px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 999px; color: var(--muted); }
+      .filters a.active { background: var(--accent); color: #002133; border-color: transparent; font-weight: 600; }
+      .controls { display: flex; gap: 12px; align-items: center; }
+      .controls select { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+      .topnav a { margin-left: 10px; color: var(--muted); border: 1px solid var(--border); padding: 6px 10px; border-radius: 8px; }
+      .topnav a:hover { color: var(--text); }
+      .card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+      .card header { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+      .meta { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 12px 14px; color: var(--muted); }
+      .meta div { background: rgba(255,255,255,0.02); border: 1px solid var(--border); padding: 8px; border-radius: 8px; }
+      .examples { width: 100%; border-collapse: collapse; }
+      .examples th, .examples td { padding: 10px 12px; border-top: 1px solid var(--border); vertical-align: top; }
+      .examples th { text-align: left; color: var(--muted); font-weight: 600; background: rgba(255,255,255,0.02); }
+      .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+      .good { background: rgba(46, 204, 113, 0.15); color: var(--good); border: 1px solid rgba(46, 204, 113, 0.35); }
+      .bad { background: rgba(255, 107, 107, 0.15); color: var(--bad); border: 1px solid rgba(255, 107, 107, 0.35); }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; color: var(--muted); }
+      .options { color: var(--muted); }
+      .filename { color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>OpenBookQA Evaluations</h1>
+        <div class="controls">
+          <form method="get" action="/">
+            <input type="hidden" name="filter" value="{{ filter_value }}" />
+            <label for="file" style="color: var(--muted); margin-right: 6px;">File:</label>
+            <select name="file" id="file" onchange="this.form.submit()">
+              <option value="all" {{ 'selected' if selected_file == 'all' else '' }}>All files</option>
+              {% for fname in files %}
+              <option value="{{ fname }}" {{ 'selected' if selected_file == fname else '' }}>{{ fname }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          <nav class="filters">
+            <a href="/?filter=all&file={{ selected_file }}" class="{{ 'active' if filter_value == 'all' else '' }}">All</a>
+            <a href="/?filter=correct&file={{ selected_file }}" class="{{ 'active' if filter_value == 'correct' else '' }}">Correct</a>
+            <a href="/?filter=incorrect&file={{ selected_file }}" class="{{ 'active' if filter_value == 'incorrect' else '' }}">Incorrect</a>
+          </nav>
+          <nav class="topnav">
+            <a href="/questions">Questions</a>
+          </nav>
+        </div>
+      </header>
+
+      {% if evals|length == 0 %}
+        <p>No evaluation JSON files found in <code>evaluation_results/</code>.</p>
+      {% endif %}
+
+      {% for ev in evals %}
+        <section class="card">
+          <header>
+            <strong>{{ ev.timestamp }}</strong>
+            <span class="filename">&nbsp;·&nbsp;{{ ev.filename }}</span>
+          </header>
+          <div class="meta">
+            <div><strong>Approach</strong><br/>{{ ev.approach }}</div>
+            <div><strong>Model</strong><br/>{{ ev.model }}</div>
+            <div><strong>Sample size</strong><br/>{{ ev.sample_size }}</div>
+            <div><strong>Accuracy</strong><br/>{% if ev.accuracy is not none %}{{ '%.2f'|format(ev.accuracy) }}{% else %}n/a{% endif %}</div>
+            <div><strong>Correct</strong><br/><span class="badge good">{{ ev.correct_count }}</span></div>
+            <div><strong>Incorrect</strong><br/><span class="badge bad">{{ ev.incorrect_count }}</span></div>
+          </div>
+          <table class="examples">
+            <thead>
+              <tr>
+                <th style="width:60px;">#</th>
+                <th>Question</th>
+                <th style="width:240px;">Choices</th>
+                <th style="width:120px;">Expected</th>
+                <th style="width:120px;">Predicted</th>
+                <th style="width:100px;">Correct</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ex in ev.examples %}
+              <tr>
+                <td>{{ ex.index }}</td>
+                <td>{{ ex.question }}</td>
+                <td class="options">
+                  {% for opt in ex.options %}
+                    <div>{{ opt }}</div>
+                  {% endfor %}
+                </td>
+                <td>{{ ex.expected }}</td>
+                <td>{{ ex.predicted }}</td>
+                <td>
+                  {% if ex.correct %}
+                    <span class="badge good">yes</span>
+                  {% else %}
+                    <span class="badge bad">no</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </section>
+      {% endfor %}
+    </div>
+  </body>
+</html>

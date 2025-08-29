@@ -1,0 +1,132 @@
+[
+  {
+    "index": 0,
+    "question": "A person wants to start saving money so that they can afford a nice vacation at the end of the year. After looking over their budget and expenses, they decide the best way to save money is to",
+    "options": [
+      "quit eating lunch out",
+      "increase their entertainment budget",
+      "buy more expensive groceries",
+      "take out a loan for the vacation"
+    ],
+    "answerKey": "A",
+    "reviewStatus": "accepted",
+    "rejectionReason": ""
+  },
+  {
+    "index": 1,
+    "question": "There is most likely going to be fog around:",
+    "options": [
+      "a marsh",
+      "a desert",
+      "a mountain peak",
+      "a busy city street"
+    ],
+    "answerKey": "A",
+    "reviewStatus": "rejected",
+    "rejectionReason": "Mountain peaks are foggy"
+  },
+  {
+    "index": 2,
+    "question": "Predators eat",
+    "options": [
+      "bunnies",
+      "fruits and vegetables",
+      "insects and worms",
+      "grains and seeds"
+    ],
+    "answerKey": "A",
+    "reviewStatus": "rejected",
+    "rejectionReason": "predators eat insects and worms as well"
+  },
+  {
+    "index": 3,
+    "question": "Oak tree seeds are planted and a sidewalk is paved right next to that spot, until eventually, the tree is tall and the roots must extend past the sidewalk, which means",
+    "options": [
+      "parts may break the concrete",
+      "the tree will stop growing",
+      "the sidewalk will become more stable",
+      "the roots will grow upwards instead"
+    ],
+    "answerKey": "A",
+    "reviewStatus": "pending",
+    "rejectionReason": ""
+  },
+  {
+    "index": 4,
+    "question": "An electric car runs on electricity via",
+    "options": [
+      "electrical conductors",
+      "solar panels",
+      "hydraulic systems",
+      "combustion engines"
+    ],
+    "answerKey": "A",
+    "reviewStatus": "pending",
+    "rejectionReason": ""
+  },
+  {
+    "index": 5,
+    "question": "As the rain forest is deforested the atmosphere will increase with",
+    "options": [
+      "carbon",
+      "oxygen",
+      "nitrogen",
+      "sulfur"
+    ],
+    "answerKey": "A",
+    "reviewStatus": "pending",
+    "rejectionReason": ""
+  },
+  {
+    "index": 6,
+    "question": "an electric car contains a motor that runs on",
+    "options": [
+      "ions",
+      "hydraulic fluid",
+      "compressed air",
+      "solar energy"
+    ],
+    "answerKey": "A",
+    "reviewStatus": "pending",
+    "rejectionReason": ""
+  },
+  {
+    "index": 7,
+    "question": "The middle of the day usually involves the bright star nearest to the earth to be straight overhead why?",
+    "options": [
+      "human planet rotation",
+      "the Earth's tilt on its axis",
+      "the gravitational pull of the Moon",
+      "the distance of the Sun from the Earth"
+    ],
+    "answerKey": "A",
+    "reviewStatus": "pending",
+    "rejectionReason": ""
+  },
+  {
+    "index": 8,
+    "question": "The summer solstice in the northern hemisphere is four months before",
+    "options": [
+      "October",
+      "December",
+      "January",
+      "February"
+    ],
+    "answerKey": "A",
+    "reviewStatus": "pending",
+    "rejectionReason": ""
+  },
+  {
+    "index": 9,
+    "question": "The main component in dirt is",
+    "options": [
+      "broken stones",
+      "decaying leaves",
+      "water and air",
+      "living organisms"
+    ],
+    "answerKey": "A",
+    "reviewStatus": "pending",
+    "rejectionReason": ""
+  }
+]
