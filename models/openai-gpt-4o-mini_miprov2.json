@@ -1,0 +1,77 @@
+{
+  "predict": {
+    "traces": [],
+    "train": [],
+    "demos": [
+      {
+        "question": "The way that squirrels put away food during the cool season ensures that they",
+        "options": [
+          "A. survive",
+          "B. eat",
+          "C. live",
+          "D. grow"
+        ],
+        "answer": "A"
+      },
+      {
+        "question": "A pupa creates cocoons in a stage of the life cycle, and eventually the insect will",
+        "options": [
+          "A. adjust",
+          "B. shrink",
+          "C. burn",
+          "D. collect"
+        ],
+        "answer": "A"
+      },
+      {
+        "question": "The sun is a source of which, first and foremost?",
+        "options": [
+          "A. Light",
+          "B. Energy",
+          "C. Heat",
+          "D. Nutrients)"
+        ],
+        "answer": "A"
+      },
+      {
+        "question": "Using mirrors to focus collected light from heavenly bodies allows",
+        "options": [
+          "A. detailed observation",
+          "B. foregone conclusions",
+          "C. radiation experiments",
+          "D. celestial music"
+        ],
+        "answer": "A"
+      }
+    ],
+    "signature": {
+      "instructions": "You are a scientific advisor in a crucial meeting where decisions about educational programs are being made. Your task is to answer the following multiple-choice question based on your scientific knowledge. Carefully analyze the question and the options provided, and provide a detailed reasoning for your answer. Finally, select the single best option (A-D) that accurately reflects your conclusion.",
+      "fields": [
+        {
+          "prefix": "Question:",
+          "description": "${question}"
+        },
+        {
+          "prefix": "Options:",
+          "description": "${options}"
+        },
+        {
+          "prefix": "Reasoning: Let's think step by step in order to",
+          "description": "${reasoning}"
+        },
+        {
+          "prefix": "Answer:",
+          "description": "Only the single letter A, B, C, or D."
+        }
+      ]
+    },
+    "lm": null
+  },
+  "metadata": {
+    "dependency_versions": {
+      "python": "3.13",
+      "dspy": "3.0.2",
+      "cloudpickle": "3.1"
+    }
+  }
+}

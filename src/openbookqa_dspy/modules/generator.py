@@ -119,7 +119,8 @@ class MiproDistractorGenerator(dspy.Module):
 
         if save_path.exists():
             logger.info("GEN: loading cached distractor program from %s", save_path)
-            program = dspy.load(str(save_path))
+            # Load state-only JSON into the reconstructed program
+            program.load(str(save_path))
 
         if (
             isinstance(program, dspy.Module)
@@ -137,7 +138,8 @@ class MiproDistractorGenerator(dspy.Module):
             )
             program = optimizer.compile(program, trainset=trainset, valset=valset)
             try:
-                dspy.save(program, str(save_path))
+                # Save state-only JSON (safer and readable)
+                program.save(str(save_path), save_program=False)
                 logger.info("GEN: saved compiled generator to %s", save_path)
             except Exception:
                 logger.warning(

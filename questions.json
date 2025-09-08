@@ -48,7 +48,7 @@
       "the roots will grow upwards instead"
     ],
     "answerKey": "A",
-    "reviewStatus": "pending",
+    "reviewStatus": "accepted",
     "rejectionReason": ""
   },
   {
@@ -61,8 +61,8 @@
       "combustion engines"
     ],
     "answerKey": "A",
-    "reviewStatus": "pending",
-    "rejectionReason": ""
+    "reviewStatus": "rejected",
+    "rejectionReason": "Sounds like it could be solar panels"
   },
   {
     "index": 5,

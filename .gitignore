@@ -15,3 +15,5 @@ __pycache__/
 
 # uv lock (committable by choice; keep included)
 # uv.lock
+
+logs
