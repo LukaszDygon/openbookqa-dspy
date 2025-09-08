@@ -36,6 +36,31 @@ HF_HOME=~/.cache/huggingface
 - Type check: `uv run mypy .`
 - Run tests: `uv run pytest -q`
 
+## Run the Web UI
+
+The project ships with a small Flask web UI to browse evaluation results and review questions.
+
+```bash
+# 1) Install deps (if not already)
+uv sync
+
+# 2) Ensure environment variables are set (see Environment section)
+
+# 3) Start the web server (debug mode with auto-reload)
+uv run openbookqa-dspy-web
+```
+
+Then open:
+
+- Evaluations (answers): [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
+- Questions review: [http://127.0.0.1:5000/questions](http://127.0.0.1:5000/questions)
+
+Notes:
+
+- The server binds to `127.0.0.1:5000` by default.
+- Debug mode is enabled for local development with hot reload.
+- If you see `404` on `/questions`, make sure you are on the latest code and restart the server so routes are registered.
+
 ## Structure
 
 - `src/openbookqa_dspy/agent.py` – DSPy model and optimization scaffolding
