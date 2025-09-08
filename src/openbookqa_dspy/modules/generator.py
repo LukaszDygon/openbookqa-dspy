@@ -11,7 +11,7 @@ combined with the gold answer.
 from dataclasses import dataclass
 import logging
 from pathlib import Path
-from typing import Callable, Iterable, Optional
+from typing import Optional
 
 import dspy
 from dspy.teleprompt import MIPROv2

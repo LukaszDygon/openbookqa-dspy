@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Literal
+from typing import Iterable, Literal, cast
 import json
 import re
 
 from flask import Flask, render_template, request, redirect
+from werkzeug.wrappers.response import Response
 
 from .config import Settings
 
@@ -120,6 +121,16 @@ def _filter_examples(examples: list[QAExample], flt: EvalFilter) -> list[QAExamp
     return examples
 
 
+def _parse_eval_filter(value: str | None) -> EvalFilter:
+    """Sanitize and cast the 'filter' query param to a valid EvalFilter.
+
+    Falls back to "all" when the value is missing or invalid.
+    """
+    if value in ("all", "correct", "incorrect"):
+        return cast(EvalFilter, value)
+    return "all"
+
+
 # ---- Flask app ----
 
 
@@ -128,13 +139,11 @@ def create_app() -> Flask:
     app = Flask(__name__, template_folder=str(Path(__file__).parent / "templates"))
 
     @app.get("/")
-    def index(): 
+    def index() -> str:
         """Render evaluation browser with optional correctness filter."""
         settings = Settings.load()
         model_name = settings.model
-        flt: EvalFilter = request.args.get("filter", "all")
-        if flt not in ("all", "correct", "incorrect"):
-            flt = "all"
+        flt: EvalFilter = _parse_eval_filter(request.args.get("filter"))
 
         # Determine which file(s) to load
         all_paths = list(_iter_eval_files(EVAL_DIR))
@@ -175,7 +184,7 @@ def create_app() -> Flask:
         )
 
     @app.get("/questions")
-    def questions_get():
+    def questions_get() -> str:
         """Render questions.json review UI."""
         items: list[dict[str, object]] = []
         if QUESTIONS_PATH.exists():
@@ -192,7 +201,7 @@ def create_app() -> Flask:
         return render_template("questions.html", items=items)
 
     @app.post("/questions")
-    def questions_post():
+    def questions_post() -> Response:
         """Update review fields in questions.json from form submission."""
         if not QUESTIONS_PATH.exists():
             # Nothing to update; redirect back
